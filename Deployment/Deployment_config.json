@@ -1,0 +1,11 @@
+{
+  "bitcoinNetwork": "regtest",
+  "rpcUserName": "ubuntu",
+  "rpcPassword": "ubuntu",
+  "host": "192.168.2.28",
+  "rpcPort": "18443",
+  "lightningHubNodeID": "03242a928b280230ffcdd2414daa6b009c5d157e5b7e0e6f4c24ac891835b2d833",
+  "lightningPort": "9735",
+  "vendorIp": "192.168.2.29",
+  "vendorPort": "8080"
+}
