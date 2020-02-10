@@ -102,11 +102,17 @@ if [ "$NEW_INSTALL" = "1" ] && [ "$RBP" = "0" ]; then
            target="$user@$ip"
            targetVendor="$vendorUser@$vendorIP"
            bitcoinSource="/home/$SERVERUSER/patching-lightning/Deployment/bitcoin.conf"
+           echo $bitcoinSource
            bitcoinTarget="$user@$ip:/home/$user/.bitcoin/"
+           echo $bitcoinTarget
 	   lightningSource="/home/$SERVERUSER/patching-lightning/Deployment/config"
+           echo $lightningSource
            lightningTarget="$user@$ip:/home/$user/.lightning/"
+           echo $lightningTarget
 	   deploymentSource="/home/$SERVERUSER/patching-lightning/Deployment/Deployment_config.json"
+           echo $deploymentSource
 	   deploymentTarget="$user@$ip:/home/$user/patching-lightning/Deployment/"
+           echo $deploymentTarget
            scp -r $bitcoinSource $bitcoinTarget
 	   scp -r $deploymentSource $deploymentTarget  
 	   scp -r $lightningSource $lightningTarget  
