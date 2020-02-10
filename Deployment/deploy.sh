@@ -110,13 +110,15 @@ if [ "$NEW_INSTALL" = "1" ] && [ "$RBP" = "0" ]; then
            scp -r $bitcoinSource $bitcoinTarget
 	   scp -r $deploymentSource $deploymentTarget  
 	   scp -r $lightningSource $lightningTarget  
-		   		   
-           #get lightning configuration
+
+	   #get lightning configuration
            if [ "$IOT" = "1" ]; then
                echo "Create IoT config and create new lightning wallet"
                ssh -n $targetVendor "while true ; do if pgrep -x lightningd > /dev/null; then pkill lightning && echo \"lightning process is killed\" && break; else echo \"wait to lightning process\" && sleep 2 ; fi; done && chmod 777 ~/.lightning/$bitcoinNetwork/hsm_secret && cd ~/.lightning && ssh -n $target \"if [ -e \"/home/$user/.lightning\" ]; then sudo rm -r /home/$user/.lightning ; fi && mkdir -p .lightning/$bitcoinNetwork\" && scp ~/.lightning/$bitcoinNetwork/hsm_secret $target:~/.lightning/$bitcoinNetwork/ && pwd && node /home/$vendorUser/patching-lightning/Vendor/generateIoTConfig.js --hsmSecretPath=/home/$vendorUser/.lightning/$bitcoinNetwork/hsm_secret && scp ~/patching-lightning/Vendor/IoT_config.json $target:~/patching-lightning/IoT/ &&  sudo rm -r ~/.lightning/"
-	       ssh -n $targetVendor "~/lightning/lightningd/lightningd --network=$bitcoinNetwork --log-level=debug --daemon >> runLog.log 2>&1 &"
+               ssh -n $targetVendor "~/lightning/lightningd/lightningd --network=$bitcoinNetwork --log-level=debug --daemon >> runLog.log 2>&1 &"
                echo "Start lightning"
+                           ssh -n $target "mkdir -p ~/.lightning"
+                           scp -r $lightningSource $lightningTarget
                ssh -n $target "~/lightning/lightningd/lightningd --network=$bitcoinNetwork --log-level=debug --daemon >> runLog.log 2>&1 &"
                echo "Start lightning channel setup"
                ssh -n $target "cd ~/patching-lightning/Deployment/ ; node Setup.js --type=iot >> setupLog.log 2>&1 &"
@@ -128,12 +130,16 @@ if [ "$NEW_INSTALL" = "1" ] && [ "$RBP" = "0" ]; then
                lightningHubNodeId=$(jq '.lightningHubNodeID' /home/$SERVERUSER/patching-lightning/Deployment/Deployment_config.json)
                echo "vendor Ip $targetVendor"
                vendorPubKey=$(ssh -n $targetVendor "jq '.publicKey' ~/patching-lightning/Vendor/Vendor_config.json")
-               echo "vendorIp=$vendorIp_, vendorPort=$vendorPort, lightningHubNodeId=$lightningHubNodeId, vendorPubKey=$vendorPubKey"
-               ssh -n $target "node /home/$user/patching-lightning/Deployment/createConfig.js --type=Distributor --vendorIp=$vendorIp_ --vendorPort=$vendorPort --vendorPubKey=$vendorPubKey --lightningHubNodeId=$lightningHubNodeId --dhtPort=$DHTPORT"
-               invoice=$(~/lightning/cli/lightning-cli invoice 5000000 "$target$now" hello 28800|\jq '.bolt11')
+               echo "vendorIp=$vendorIp_, vendorPort=$vendorPort, lightningHubNodeId=$lightningHubNodeId, vendorPubKey=$vendorPubKey"		   		   
+		ssh -n $target "node /home/$user/patching-lightning/Deployment/createConfig.js --type=Distributor --vendorIp=$vendorIp_ --vendorPort=$vendorPort --vendorPubKey=$vendorPubKey --lightningHubNodeId=$lightningHubNodeId --dhtPort=$DHTPORT"
+               #invoice=$(~/lightning/cli/lightning-cli invoice 5000000 "$target$now" hello 28800|\jq '.bolt11')
+               lightningNodeId=$(ssh -n $target "~/lightning/cli/lightning-cli getinfo|\jq -r '.id'")
+               echo $lightningNodeId
+               ~/lightning/cli/lightning-cli connect $lightningNodeId $ip 9735
+               ~/lightning/cli/lightning-cli fundchannel $lightningNodeId 1000000
                ssh -n $target "node /home/$user/patching-lightning/Utils/generateAddress.js --hsmSecretPath=/home/$user/.lightning/$bitcoinNetwork/hsm_secret --configFilePath=/home/$user/patching-lightning/Distributor/Distributor_config.json"
-               echo "Start lightning channel setup"
-               ssh -n $target "cd ~/patching-lightning/Deployment/ ; node Setup.js --type=distributor --invoice=$invoice >> setupLog.log 2>&1 &"
+               #echo "Start lightning channel setup"
+               #ssh -n $target "cd ~/patching-lightning/Deployment/ ; node Setup.js --type=distributor --invoice=$invoice >> setupLog.log 2>&1 &"
            elif [ "$VENDOR" = "1" ]; then
                echo "Start lightning channel setup"
                ssh -n $target "node /home/$user/patching-lightning/Deployment/createConfig.js --type=Vendor --vendorPort=8080 --dhtPort=$DHTPORT"
