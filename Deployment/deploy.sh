@@ -115,22 +115,22 @@ if [ "$NEW_INSTALL" = "1" ] && [ "$RBP" = "0" ]; then
            echo $deploymentTarget
            scp -r $bitcoinSource $bitcoinTarget
 	   scp -r $deploymentSource $deploymentTarget  
-	   #scp -r $lightningSource $lightningTarget  
+	   scp -r $lightningSource $lightningTarget  
 
 	   #get lightning configuration
            if [ "$IOT" = "1" ]; then
                echo "Create IoT config and create new lightning wallet"
                ssh -n $targetVendor "while true ; do if pgrep -x lightningd > /dev/null; then pkill lightning && echo \"lightning process is killed\" && break; else echo \"wait to lightning process\" && sleep 2 ; fi; done && chmod 777 ~/.lightning/$bitcoinNetwork/hsm_secret && cd ~/.lightning && ssh -n $target \"if [ -e \"/home/$user/.lightning\" ]; then sudo rm -r /home/$user/.lightning ; fi && mkdir -p .lightning/$bitcoinNetwork\" && scp ~/.lightning/$bitcoinNetwork/hsm_secret $target:~/.lightning/$bitcoinNetwork/ && pwd && node /home/$vendorUser/patching-lightning/Vendor/generateIoTConfig.js --hsmSecretPath=/home/$vendorUser/.lightning/$bitcoinNetwork/hsm_secret && scp ~/patching-lightning/Vendor/IoT_config.json $target:~/patching-lightning/IoT/ &&  sudo rm -r ~/.lightning/"
-               ssh -n $targetVendor "~/lightning/lightningd/lightningd --network=$bitcoinNetwork --log-level=debug --log-file=lightningProcessLog.log --bind-addr=0.0.0.0:9735 --bitcoin-rpcuser=ubuntu --bitcoin-rpcpassword=ubuntu --daemon &"
+               ssh -n $targetVendor "~/lightning/lightningd/lightningd --network=$bitcoinNetwork --log-level=debug --daemon &"
                echo "Start lightning"
-               #ssh -n $target "mkdir -p ~/.lightning"
-               #scp -r $lightningSource $lightningTarget
-               ssh -n $target "~/lightning/lightningd/lightningd --network=$bitcoinNetwork --log-level=debug --log-file=lightningProcessLog.log --bind-addr=0.0.0.0:9735 --bitcoin-rpcuser=ubuntu --bitcoin-rpcpassword=ubuntu --daemon &"
+               ssh -n $target "mkdir -p ~/.lightning"
+               scp -r $lightningSource $lightningTarget
+               ssh -n $target "~/lightning/lightningd/lightningd --network=$bitcoinNetwork --log-level=debug --daemon &"
                echo "Start lightning channel setup"
                ssh -n $target "cd ~/patching-lightning/Deployment/ ; node Setup.js --type=iot >> setupLog.log 2>&1 &"
            elif [ "$DISTRIBUTOR" = "1" ]; then
                now=$(date)
-               ssh -n $target "~/lightning/lightningd/lightningd --network=$bitcoinNetwork --log-level=debug --log-file=lightningProcessLog.log --bind-addr=0.0.0.0:9735 --bitcoin-rpcuser=ubuntu --bitcoin-rpcpassword=ubuntu --daemon &"
+               ssh -n $target "~/lightning/lightningd/lightningd --network=$bitcoinNetwork --log-level=debug --daemon &"
                vendorIp_=$(jq '.vendorIp' /home/$SERVERUSER/patching-lightning/Deployment/Deployment_config.json)
                vendorPort=$(jq '.vendorPort' /home/$SERVERUSER/patching-lightning/Deployment/Deployment_config.json)
                lightningHubNodeId=$(jq '.lightningHubNodeID' /home/$SERVERUSER/patching-lightning/Deployment/Deployment_config.json)
@@ -141,17 +141,17 @@ if [ "$NEW_INSTALL" = "1" ] && [ "$RBP" = "0" ]; then
                #invoice=$(~/lightning/cli/lightning-cli invoice 5000000 "$target$now" hello 28800|\jq '.bolt11')
                lightningNodeId=$(ssh -n $target "~/lightning/cli/lightning-cli getinfo|\jq -r '.id'")
                echo $lightningNodeId
-               ~/lightning/cli/lightning-cli --network=$bitcoinNetwork connect $lightningNodeId $ip 9735
-               ~/lightning/cli/lightning-cli --network=$bitcoinNetwork fundchannel $lightningNodeId 1000000
+               ~/lightning/cli/lightning-cli connect $lightningNodeId $ip 9735
+               ~/lightning/cli/lightning-cli fundchannel $lightningNodeId 1000000
                ssh -n $target "node /home/$user/patching-lightning/Utils/generateAddress.js --hsmSecretPath=/home/$user/.lightning/$bitcoinNetwork/hsm_secret --configFilePath=/home/$user/patching-lightning/Distributor/Distributor_config.json"
                #echo "Start lightning channel setup"
                #ssh -n $target "cd ~/patching-lightning/Deployment/ ; node Setup.js --type=distributor --invoice=$invoice >> setupLog.log 2>&1 &"
            elif [ "$VENDOR" = "1" ]; then
                echo "Start lightning channel setup"
                ssh -n $target "node /home/$user/patching-lightning/Deployment/createConfig.js --type=Vendor --vendorPort=8080 --dhtPort=$DHTPORT"
-               ssh -n $target "~/lightning/lightningd/lightningd --network=$bitcoinNetwork --log-level=debug --log-file=lightningProcessLog.log --bind-addr=0.0.0.0:9735 --bitcoin-rpcuser=ubuntu --bitcoin-rpcpassword=ubuntu --daemon &"
+               ssh -n $target "~/lightning/lightningd/lightningd --network=$bitcoinNetwork --log-level=debug --daemon &"
                ssh -n $target "sleep 5 && pkill lightning && node /home/$user/patching-lightning/Utils/generateAddress.js --hsmSecretPath=/home/$user/.lightning/$bitcoinNetwork/hsm_secret --configFilePath=/home/$user/patching-lightning/Vendor/Vendor_config.json && sudo rm -r ~/.lightning/"
-               ssh -n $target "~/lightning/lightningd/lightningd --network=$bitcoinNetwork --log-level=debug --log-file=lightningProcessLog.log --bind-addr=0.0.0.0:9735 --bitcoin-rpcuser=ubuntu --bitcoin-rpcpassword=ubuntu --daemon &"
+               ssh -n $target "~/lightning/lightningd/lightningd --network=$bitcoinNetwork --log-level=debug --daemon &"
            fi
 
            echo "End of installation $ip"
@@ -301,7 +301,7 @@ elif [ "$RUN" = "1" ]; then
                #Check if lightning process is run, if yes then we start the Distributor else start lightning and run the Distributor
                ssh -n $target "pkill node"
                ssh -n $target "pkill lightning"
-               ssh -n $target "if pgrep -x lightningd > /dev/null; then cd ~/patching-lightning/Distributor/ && pkill node ; else pkill node ; nohup ~/lightning/lightningd/lightningd --network=$bitcoinNetwork --log-level=debug --log-file=lightningProcessLog.log --bind-addr=0.0.0.0:9735 --bitcoin-rpcuser=ubuntu --bitcoin-rpcpassword=ubuntu --daemon & fi"
+               ssh -n $target "if pgrep -x lightningd > /dev/null; then cd ~/patching-lightning/Distributor/ && pkill node ; else pkill node ; nohup ~/lightning/lightningd/lightningd --network=$bitcoinNetwork --log-level=debug --daemon & fi"
                ssh -n $target "cd /home/$user/patching-lightning/Distributor/ && sleep 2 && export DEBUG=bittorrent-extension,distributor,bittorrent-protocol,LightningClient; nohup node index.js > runDistLog.log 2>&1 &"
              done <"$CONF_DISTRIBUTOR"
 
@@ -314,7 +314,7 @@ elif [ "$RUN" = "1" ]; then
 
                ssh -n $target "pkill node"
                ssh -n $target "pkill lightning"
-               ssh -n $target "if pgrep -x lightningd > /dev/null; then cd ~/patching-lightning/IoT/ && pkill node ; else nohup ~/lightning/lightningd/lightningd --network=$bitcoinNetwork --log-level=debug --log-file=lightningProcessLog.log --bind-addr=0.0.0.0:9735 --bitcoin-rpcuser=ubuntu --bitcoin-rpcpassword=ubuntu --daemon & fi"
+               ssh -n $target "if pgrep -x lightningd > /dev/null; then cd ~/patching-lightning/IoT/ && pkill node ; else nohup ~/lightning/lightningd/lightningd --network=$bitcoinNetwork --log-level=debug --daemon & fi"
                ssh -n $target "cd /home/$user/patching-lightning/IoT/ && sleep 2 && export DEBUG=bittorrent-extension,iot,bittorrent-protocol,LightningClient,lightning-client; nohup node index.js > runIotLog.log 2>&1 &"
 
               done <"$CONF_IOT"
@@ -340,7 +340,7 @@ elif [ "$RUN" = "1" ]; then
                #Check if lightning process is run, if yes then we start the Distributor else start lightning and run the Distributor
                ssh -n $target "pkill node"
                ssh -n $target "pkill lightning"
-               ssh -n $target "if pgrep -x lightningd > /dev/null; then cd ~/patching-lightning/Distributor/ && pkill node ; else nohup ~/lightning/lightningd/lightningd --network=$bitcoinNetwork --log-level=debug --log-file=lightningProcessLog.log --bind-addr=0.0.0.0:9735 --bitcoin-rpcuser=ubuntu --bitcoin-rpcpassword=ubuntu --daemon & fi"
+               ssh -n $target "if pgrep -x lightningd > /dev/null; then cd ~/patching-lightning/Distributor/ && pkill node ; else nohup ~/lightning/lightningd/lightningd --network=$bitcoinNetwork --log-level=debug --daemon & fi"
                ssh -n $target "cd /home/$user/patching-lightning/Distributor/ && sleep 2 &&  export DEBUG=bittorrent-extension,distributor,bittorrent-protocol,LightningClient,webt ; nohup node index.js > runDistLog.log 2>&1 &"
              done <"$CONF_DISTRIBUTOR"
 
@@ -353,7 +353,7 @@ elif [ "$RUN" = "1" ]; then
                #Check if lightning process is run, if yes then we start the Distributor else start lightning and run the IoT
                ssh -n $target "pkill node"
                ssh -n $target "pkill lightning"
-               ssh -n $target "if pgrep -x lightningd > /dev/null; then cd ~/patching-lightning/IoT/ && pkill node ; else nohup ~/lightning/lightningd/lightningd --network=$bitcoinNetwork --log-level=debug --log-file=lightningProcessLog.log --bind-addr=0.0.0.0:9735 --bitcoin-rpcuser=ubuntu --bitcoin-rpcpassword=ubuntu --daemon & fi"
+               ssh -n $target "if pgrep -x lightningd > /dev/null; then cd ~/patching-lightning/IoT/ && pkill node ; else nohup ~/lightning/lightningd/lightningd --network=$bitcoinNetwork --log-level=debug --daemon & fi"
                ssh -n $target "cd /home/$user/patching-lightning/IoT/ && sleep 2 && export DEBUG=bittorrent-extension,iot,bittorrent-protocol,LightningClient ; nohup node index.js > runIotLog.log 2>&1 &"
              done <"$CONF_IOT"
     fi
