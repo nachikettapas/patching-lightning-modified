@@ -17,7 +17,7 @@ const Loki = require('lokijs')
 const db = new Loki('loki.json')
 const colors = require('colors')
 
-const DIST_DOWNLOAD_INTERVAL = 10 * 1000
+const DIST_DOWNLOAD_INTERVAL = 30 * 1000
 
 function Vendor (configFilePath) {
   let self = this
