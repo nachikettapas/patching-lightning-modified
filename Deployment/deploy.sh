@@ -141,8 +141,8 @@ if [ "$NEW_INSTALL" = "1" ] && [ "$RBP" = "0" ]; then
                #invoice=$(~/lightning/cli/lightning-cli invoice 5000000 "$target$now" hello 28800|\jq '.bolt11')
                lightningNodeId=$(ssh -n $target "~/lightning/cli/lightning-cli getinfo|\jq -r '.id'")
                echo $lightningNodeId
-               ~/lightning/cli/lightning-cli connect $lightningNodeId $ip 9735
-               ~/lightning/cli/lightning-cli fundchannel $lightningNodeId 1000000
+               ~/lightning/cli/lightning-cli --network=$bitcoinNetwork connect $lightningNodeId $ip 9735
+               ~/lightning/cli/lightning-cli --network=$bitcoinNetwork fundchannel $lightningNodeId 1000000
                ssh -n $target "node /home/$user/patching-lightning/Utils/generateAddress.js --hsmSecretPath=/home/$user/.lightning/$bitcoinNetwork/hsm_secret --configFilePath=/home/$user/patching-lightning/Distributor/Distributor_config.json"
                #echo "Start lightning channel setup"
                #ssh -n $target "cd ~/patching-lightning/Deployment/ ; node Setup.js --type=distributor --invoice=$invoice >> setupLog.log 2>&1 &"
