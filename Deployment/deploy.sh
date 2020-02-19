@@ -120,7 +120,7 @@ if [ "$NEW_INSTALL" = "1" ] && [ "$RBP" = "0" ]; then
 	   #get lightning configuration
            if [ "$IOT" = "1" ]; then
                echo "Create IoT config and create new lightning wallet"
-               ssh -n $targetVendor "while true ; do if pgrep -x lightningd > /dev/null; then pkill lightning && echo \"lightning process is killed\" && break; else echo \"wait to lightning process\" && sleep 2 ; fi; done && chmod 777 ~/.lightning/$bitcoinNetwork/hsm_secret && cd ~/.lightning && ssh -n $target \"if [ -e \"/home/$user/.lightning\" ]; then sudo rm -r /home/$user/.lightning/$bitcoinNetwork ; fi && mkdir -p .lightning/$bitcoinNetwork\" && scp ~/.lightning/$bitcoinNetwork/hsm_secret $target:~/.lightning/$bitcoinNetwork/ && pwd && node /home/$vendorUser/patching-lightning/Vendor/generateIoTConfig.js --hsmSecretPath=/home/$vendorUser/.lightning/$bitcoinNetwork/hsm_secret && scp ~/patching-lightning/Vendor/IoT_config.json $target:~/patching-lightning/IoT/ &&  sudo rm -r ~/.lightning/$bitcoinNetwork"
+               ssh -n $targetVendor "while true ; do if pgrep -x lightningd > /dev/null; then pkill lightning && echo \"lightning process is killed\" && break; else echo \"wait to lightning process\" && sleep 2 ; fi; done && chmod 777 ~/.lightning/$bitcoinNetwork/hsm_secret && cd ~/.lightning && ssh -n $target \"if [ -e \"/home/$user/.lightning/$bitcoinNetwork\" ]; then sudo rm -r /home/$user/.lightning/$bitcoinNetwork ; fi && mkdir -p .lightning/$bitcoinNetwork\" && scp ~/.lightning/$bitcoinNetwork/hsm_secret $target:~/.lightning/$bitcoinNetwork/ && pwd && node /home/$vendorUser/patching-lightning/Vendor/generateIoTConfig.js --hsmSecretPath=/home/$vendorUser/.lightning/$bitcoinNetwork/hsm_secret && scp ~/patching-lightning/Vendor/IoT_config.json $target:~/patching-lightning/IoT/ &&  sudo rm -r ~/.lightning/$bitcoinNetwork"
                ssh -n $targetVendor "~/lightning/lightningd/lightningd --log-level=debug --daemon >> lightningRunLog.log 2>&1 &"
                echo "Start lightning"
                ssh -n $target "mkdir -p ~/.lightning"
@@ -128,6 +128,7 @@ if [ "$NEW_INSTALL" = "1" ] && [ "$RBP" = "0" ]; then
                ssh -n $target "~/lightning/lightningd/lightningd --log-level=debug --daemon >> lightningRunLog.log 2>&1 &"
                echo "Start lightning channel setup"
                ssh -n $target "cd ~/patching-lightning/Deployment/ ; node Setup.js --type=iot >> setupLog.log 2>&1 &"
+	       sleep 20
            elif [ "$DISTRIBUTOR" = "1" ]; then
                now=$(date)
                ssh -n $target "~/lightning/lightningd/lightningd --log-level=debug --daemon >> lightningRunLog.log 2>&1 &"
